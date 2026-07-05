@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin System | Edward Barber</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+      :root { --c: #00f2fe; }
+      body { background: #050505; color: #fff; font-family: 'Rajdhani', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow-x: hidden; user-select: none; }
+      canvas { position: fixed; top: 0; left: 0; z-index: -1; }
+      
+      .panel { 
+          background: rgba(10, 10, 10, 0.95); padding: 2rem; width: 90%; max-width: 500px; 
+          border-radius: 20px; text-align: center; border: 3px solid var(--c); 
+          box-shadow: 0 0 25px var(--c), inset 0 0 10px var(--c);
+          animation: neonPulse 2s infinite alternate; box-sizing: border-box; position: relative; 
+      }
+      @keyframes neonPulse { 
+          0% { border-color: #00f2fe; box-shadow: 0 0 20px #00f2fe, inset 0 0 5px #00f2fe; } 
+          50% { border-color: #ff00ff; box-shadow: 0 0 30px #ff00ff, inset 0 0 10px #ff00ff; } 
+          100% { border-color: #ffff00; box-shadow: 0 0 20px #ffff00, inset 0 0 5px #ffff00; } 
+      }
+      
+      h2 { font-size: clamp(1.2rem, 4vw, 2rem); font-family: 'Orbitron'; margin-bottom: 1.5rem; text-shadow: 0 0 10px #fff; }
+      .btn { background: #000; border: 2px solid var(--c); color: var(--c); padding: 15px; width: 100%; margin: 0.5rem 0; cursor: pointer; font-family: 'Orbitron'; font-size: 1rem; border-radius: 8px; text-transform: uppercase; font-weight: bold; }
+      .btn:hover { background: var(--c); color: #000; box-shadow: 0 0 20px var(--c); }
+      .btn-reload { position: absolute; top: 15px; right: 15px; cursor: pointer; font-size: 1.5rem; color: var(--c); text-shadow: 0 0 10px var(--c); }
+      
+      .item { background: #1a1a1a; padding: 1.2rem; margin: 0.8rem 0; border-radius: 12px; border-left: 6px solid var(--c); text-align: left; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+      .cita-name { font-size: 1.4rem; font-weight: bold; color: #fff; }
+      .cita-time { font-size: 1.2rem; color: var(--c); font-weight: bold; display: block; margin-top: 5px; }
+      
+      #lista { margin-top: 1.5rem; max-height: 45vh; overflow-y: auto; padding-right: 10px; }
+      #lista::-webkit-scrollbar { width: 8px; }
+      #lista::-webkit-scrollbar-thumb { background: var(--c); border-radius: 10px; box-shadow: 0 0 10px var(--c); }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    
+    <div class="panel" id="loginBox">
+      <h2>// ADMIN //</h2>
+      <input type="password" id="pass" placeholder="CLAVE" style="width:100%; padding:12px; background:#000; border:2px solid #333; color:#fff; text-align:center; border-radius:8px; box-sizing:border-box; font-size: 1rem;" />
+      <button class="btn" onclick="auth()">ENTRAR</button>
+    </div>
+
+    <div class="panel" id="adminBox" style="display:none;">
+      <i class="fas fa-sync-alt btn-reload" onclick="loadData()"></i>
+      <h2>// PANEL CONTROL //</h2>
+      <button class="btn" id="btnStatus" onclick="toggleStatus()">LOCAL: CARGANDO...</button>
+      <div id="lista"></div>
+      <button class="btn" onclick="location.reload()" style="border-color:#ff3131; color:#ff3131;">SALIR</button>
+    </div>
+
+    <script>
+      const DB_URL = "https://edward-barber-default-rtdb.firebaseio.com/";
+      const PASS = "9999";
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      function resize() { canvas.width = window.innerWidth * window.devicePixelRatio; canvas.height = window.innerHeight * window.devicePixelRatio; canvas.style.width = window.innerWidth + "px"; canvas.style.height = window.innerHeight + "px"; ctx.scale(window.devicePixelRatio, window.devicePixelRatio); }
+      window.onresize = resize; resize();
+
+      const stars = Array.from({ length: 50 }, () => ({ x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight, size: Math.random() * 6 + 4, color: `hsl(${Math.random() * 360}, 100%, 75%)`, speed: Math.random() * 0.4 + 0.2 }));
+      
+      function drawStar(x, y, size, color) { 
+          ctx.save(); ctx.translate(x, y); ctx.fillStyle = color; 
+          ctx.shadowBlur = 20; ctx.shadowColor = color; ctx.beginPath(); 
+          for (let i = 0; i < 5; i++) { 
+              ctx.lineTo(Math.cos((18 + i * 72) * Math.PI / 180) * size, Math.sin((18 + i * 72) * Math.PI / 180) * size); 
+              ctx.lineTo(Math.cos((54 + i * 72) * Math.PI / 180) * (size / 2.2), Math.sin((54 + i * 72) * Math.PI / 180) * (size / 2.2)); 
+          } 
+          ctx.closePath(); ctx.fill(); ctx.restore(); 
+      }
+      
+      function animate() { 
+          ctx.fillStyle = "rgba(0, 0, 0, 0.2)"; ctx.fillRect(0, 0, window.innerWidth, window.innerHeight); 
+          stars.forEach(s => { s.y += s.speed; if (s.y > window.innerHeight + 20) s.y = -20; drawStar(s.x, s.y, s.size, s.color); }); 
+          requestAnimationFrame(animate); 
+      }
+      animate();
+
+      function auth() { if(document.getElementById('pass').value === PASS) { document.getElementById('loginBox').style.display = 'none'; document.getElementById('adminBox').style.display = 'block'; loadData(); } else { alert("CLAVE INCORRECTA"); } }
+
+      function formatearFecha(fechaStr) {
+          const dias = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+          const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+          const [y, m, d] = fechaStr.split('-');
+          const date = new Date(y, m - 1, d);
+          return `${dias[date.getDay()]} ${date.getDate()} de ${meses[date.getMonth()]}`;
+      }
+
+      async function loadData() {
+          const res = await fetch(DB_URL + ".json");
+          const data = await res.json();
+          document.getElementById('btnStatus').innerText = data.status === "open" ? "LOCAL: ABIERTO ✅" : "LOCAL: CERRADO ❌";
+          const lista = document.getElementById('lista');
+          lista.innerHTML = "<h4>AGENDA ORGANIZADA</h4>";
+          
+          if(data.citas) {
+              const citas = Object.entries(data.citas);
+              const fechasUnicas = [...new Set(citas.map(c => c[1].date))].sort();
+
+              fechasUnicas.forEach(fecha => {
+                  lista.innerHTML += `<div style="margin-top:25px; color:#fff; font-family:'Orbitron'; font-weight:bold; border-bottom:2px solid var(--c); padding-bottom:5px; text-align:left; text-shadow: 0 0 10px var(--c);">📅 ${formatearFecha(fecha)}</div>`;
+                  
+                  const citasDelDia = citas.filter(c => c[1].date === fecha).sort((a, b) => {
+                      const getMinutes = (t) => {
+                          let [time, modifier] = t.split(' ');
+                          let [hours, minutes] = time.split(':').map(Number);
+                          if (modifier?.toLowerCase() === 'pm' && hours !== 12) hours += 12;
+                          if (modifier?.toLowerCase() === 'am' && hours === 12) hours = 0;
+                          return hours * 60 + minutes;
+                      };
+                      return getMinutes(a[1].time) - getMinutes(b[1].time);
+                  });
+
+                  citasDelDia.forEach(([id, c]) => {
+                      lista.innerHTML += `
+                        <div class="item">
+                            <div class="cita-info">
+                                <span class="cita-name">${c.name}</span>
+                                <span class="cita-time">🕙 ${c.time}</span>
+                            </div>
+                            <i class="fas fa-trash" onclick="del('${id}')" style="color:#ff3131; cursor:pointer; font-size: 1.4rem; text-shadow: 0 0 5px #ff3131;"></i>
+                        </div>`;
+                  });
+              });
+          }
+      }
+      async function toggleStatus() { const res = await fetch(DB_URL + "status.json"); const status = await res.json(); await fetch(DB_URL + "status.json", { method: 'PUT', body: JSON.stringify(status === "open" ? "closed" : "open") }); loadData(); }
+      async function del(id) { await fetch(DB_URL + `citas/${id}.json`, { method: 'DELETE' }); loadData(); }
+    </script>
+  </body>
+</html>
