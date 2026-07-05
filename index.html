@@ -41,19 +41,19 @@
     <canvas id="canvas"></canvas>
     
     <div class="panel" id="loginBox">
-      <h2>// ADMIN //</h2>
-      <input type="password" id="pass" placeholder="CLAVE" style="width:100%; padding:12px; background:#000; border:2px solid #333; color:#fff; text-align:center; border-radius:8px; box-sizing:border-box; font-size: 1rem;" />
+      <h2>💈 BIENVENIDO EDWARD 💈</h2>
+      <input type="password" id="pass" placeholder="Escribe tu password" style="width:100%; padding:12px; background:#000; border:2px solid #333; color:#fff; text-align:center; border-radius:8px; box-sizing:border-box; font-size: 1rem;" />
       <button class="btn" onclick="auth()">ENTRAR</button>
     </div>
 
     <div class="panel" id="adminBox" style="display:none;">
       <i class="fas fa-sync-alt btn-reload" onclick="loadData()"></i>
-      <h2>// PANEL CONTROL //</h2>
+      <h2>💈ADMINISTRACIÓN DE AGENDA💈</h2>
       <button class="btn" id="btnStatus" onclick="toggleStatus()">LOCAL: CARGANDO...</button>
       <div id="lista"></div>
       <button class="btn" onclick="location.reload()" style="border-color:#ff3131; color:#ff3131;">SALIR</button>
     </div>
-
+    
     <script>
       const DB_URL = "https://edward-barber-default-rtdb.firebaseio.com/";
       const PASS = "9999";
